@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#B3E5FC"
+    tools:context="com.example.admin.thoikhoabieu.MainActivity">
+
+    <ImageView
+        android:layout_marginTop="20dp"
+        android:id="@+id/imgView"
+        android:layout_width="120dp"
+        android:layout_height="120dp"
+        android:layout_marginHorizontal="100dp"
+        android:src="@drawable/logo_1"/>
+
+    <EditText
+        android:layout_marginTop="20dp"
+        android:layout_marginHorizontal="40dp"
+        android:id="@+id/edtTenDangNhap"
+        android:hint="Tên Đăng Nhập"
+        android:layout_width="250dp"
+        android:textSize="20sp"
+        android:textColor="#ffff"
+        android:layout_height="wrap_content" />
+
+    <EditText
+        android:id="@+id/edtPass"
+        android:layout_width="250dp"
+        android:layout_height="wrap_content"
+        android:hint="PassWord"
+        android:inputType="textPassword"
+        android:textSize="20sp"
+        android:textColor="#ffff"
+        android:layout_marginTop="20dp"
+        android:layout_marginHorizontal="40dp"/>
+
+    <Button
+        android:id="@+id/btnDangNhap"
+        android:layout_width="250dp"
+        android:layout_height="wrap_content"
+        android:text="Đăng Nhập"
+        android:textColor="#ffff"
+        android:layout_marginTop="20dp"
+        android:layout_marginHorizontal="40dp"
+        android:background="#D32F2F"/>
+
+</LinearLayout>

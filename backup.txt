@@ -1,0 +1,371 @@
+package com.example.admin.thoikhoabieu;
+
+import android.app.Dialog;
+import android.content.Intent;
+import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.GridView;
+import android.widget.Spinner;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.JsonArrayRequest;
+import com.android.volley.toolbox.Volley;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+public class ScheduleActivity extends AppCompatActivity {
+
+    String url = Common.UrlGetData;
+    TextView txtTKb, txtTuan;
+
+    GridView gvData;
+    public static ArrayList<InforTimeTable> arrayAllOfData = new ArrayList<>();
+    ArrayList<InforTimeTable> arrayData;
+    CustomGridAdapter adapter;
+
+    Spinner spinner;
+    ArrayAdapter<String> adapterSpinnerDanhMuc;
+    Map<String, Week> WeekList = new HashMap<String, Week>();
+
+    String stringStartHK = "23-04-2018";
+    String stringEndHK = "12-05-2018";
+    Date dateStartHK;
+    Date dateEndHK;
+    SimpleDateFormat formatter;
+    List<String> keys = new ArrayList<>();
+
+    String sdtCode;
+
+    Button btn;
+
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_schedule);
+
+        anhXa();
+        Intent intent = getIntent();
+        sdtCode = intent.getStringExtra("username");
+        if(arrayAllOfData.size() == 0) {
+            GetData(url + sdtCode);
+        }
+
+
+
+        for(int i = 0; i < arrayAllOfData.size(); i++){
+            Log.d("AA", arrayAllOfData.get(i).getTenMH());
+        }
+
+
+        formatter = new SimpleDateFormat("dd-MM-yyyy");
+        initSpinner();
+        spinner.setOnItemSelectedListener(new MyEvent());
+
+        gvData.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+
+                dialogDetail();
+            }
+        });
+
+
+        btn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                dialogDetail();
+            }
+        });
+    }
+
+    private void initSpinner() {
+
+        try {
+
+            dateStartHK = formatter.parse(stringStartHK);
+            dateEndHK = formatter.parse(stringEndHK);
+
+            getWeeksBetween(dateStartHK, dateEndHK);
+
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+
+//        List<String> keys = new ArrayList<>();
+//        for (Map.Entry me : WeekList.entrySet()) {
+//            keys.add(me.getKey().toString());
+//        }
+
+        adapterSpinnerDanhMuc = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, keys);
+
+        //xu ly SpinnerDanhMuc
+        adapterSpinnerDanhMuc.setDropDownViewResource(android.R.layout.simple_list_item_single_choice);
+
+        //thi?t l?p adapter cho Spinner
+        spinner.setAdapter(adapterSpinnerDanhMuc);
+    }
+
+
+    //hop thoai dialog hien ra
+    private void dialogDetail() {
+        Dialog dialog = new Dialog(this);
+        dialog.setContentView(R.layout.dialog_detail);
+        dialog.show();
+    }
+
+    private void anhXa() {
+        arrayData = new ArrayList<>();
+        btn = findViewById(R.id.btn);
+
+        gvData = (GridView) findViewById(R.id.gridView);
+
+
+
+        spinner = findViewById(R.id.spinner);
+
+        txtTKb = findViewById(R.id.txtTKb);
+        txtTuan = findViewById(R.id.txtTuanDetail);
+    }
+
+    public ArrayList<InforTimeTable> twoDArrayToList(InforTimeTable[][] twoDArray) {
+        ArrayList<InforTimeTable> list = new ArrayList<InforTimeTable>();
+        for (InforTimeTable[] array : twoDArray) {
+            list.addAll(Arrays.asList(array));
+        }
+        return list;
+    }
+
+    public int getWeeksBetween(Date a, Date b) {
+
+        if (b.before(a)) {
+            return -getWeeksBetween(b, a);
+        }
+        a = resetTime(a);
+        b = resetTime(b);
+
+        Calendar cal = new GregorianCalendar();
+        cal.setTime(a);
+        int weeks = 0;
+
+        String start = null;
+        String end = null;
+        while (cal.getTime().before(b)) {
+            // add another week
+            start = formatter.format(cal.getTime());
+
+            Calendar calendar = Calendar.getInstance();
+            calendar.setTime(cal.getTime());
+            calendar.add(Calendar.DATE, + 6);
+            end = formatter.format(calendar.getTime());
+
+            WeekList.put("Tu?n " + (weeks + 1), new Week(start, end));
+            keys.add("Tu?n " + (weeks + 1));
+
+            cal.add(Calendar.WEEK_OF_YEAR, 1);
+            weeks++;
+
+        }
+        return weeks;
+    }
+
+    public static Date resetTime(Date d) {
+        Calendar cal = new GregorianCalendar();
+        cal.setTime(d);
+        cal.set(Calendar.HOUR_OF_DAY, 0);
+        cal.set(Calendar.MINUTE, 0);
+        cal.set(Calendar.SECOND, 0);
+        cal.set(Calendar.MILLISECOND, 0);
+        return cal.getTime();
+    }
+
+    private class MyEvent implements AdapterView.OnItemSelectedListener{
+
+        @Override
+        public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+            txtTuan.setText("Tu?n " + (i + 1) + ": " + WeekList.get(keys.get(i)).toString());
+            Log.d("AA", arrayData.size() +"");
+            /*try {
+                addDataToMainList(arrayAllOfData, WeekList.get(keys.get(i)).getStartDate(), WeekList.get(keys.get(i)).getEndDate());
+                adapter = new CustomGridAdapter(ScheduleActivity.this, R.layout.list_item_layput, arrayData);
+                gvData.setAdapter(adapter);
+            } catch (ParseException e) {
+                e.printStackTrace();
+            }*/
+
+        }
+
+        @Override
+        public void onNothingSelected(AdapterView<?> adapterView) {
+
+        }
+    }
+
+    public interface VolleyCallback {
+        void onSuccessResponse(String result);
+    }
+
+    //Hàm get d? li?u t? WebService v?
+    public void GetData(String url, final VolleyCallback callback) {
+
+        final RequestQueue requestQueue = Volley.newRequestQueue(this);
+        JsonArrayRequest jsonArrayRequest = new JsonArrayRequest(
+                Request.Method.GET,
+                url,
+                null,
+                new Response.Listener<JSONArray>() {
+                    @Override
+                    public void onResponse(JSONArray response) {
+                        //final ArrayList<InforTimeTable> dataList = new ArrayList<>();
+                        for (int i=0; i<response.length(); i++){
+                            try {
+                                JSONObject object = response.getJSONObject(i);
+                                arrayAllOfData.add(new InforTimeTable(
+                                        object.getString("MaMH"),
+                                        object.getString("TenMH"),
+                                        object.getString("TenPhong"),
+                                        object.getString("NgayHoc"),
+                                        object.getInt("TietBatDau"),
+                                        object.getString("GiangVien"),
+                                        object.getString("Lop")
+                                ));
+                            }catch (JSONException e){
+                                e.printStackTrace();
+                            }
+
+                            Log.d("BBB", arrayAllOfData.size() + " 1");
+
+                        }
+                        callback.onSuccessResponse(url);
+
+                    }
+                },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        Toast.makeText(ScheduleActivity.this, "L?i", Toast.LENGTH_SHORT).show();
+                    }
+                });
+        requestQueue.add(jsonArrayRequest);
+
+        Log.d("BBB", arrayAllOfData.size() + " 2");
+    }
+
+    public void addDataToMainList(ArrayList<InforTimeTable> dataList, String dateStart, String dateEnd) throws ParseException {
+        ArrayList<InforTimeTable> tempArray = new ArrayList<>();
+        Date start = formatter.parse(dateStart);
+        Date end = formatter.parse(dateEnd);
+
+        String dateOfItem;
+        Date date;
+
+        for (int i = 0; i < dataList.size(); i++){
+            dateOfItem = splitDate(dataList.get(i).getNgayHoc());
+            date = parseToDate(dateOfItem);
+
+            if(date.after(start) && date.before(end)){
+                tempArray.add(dataList.get(i));
+            }
+        }
+
+
+        InforTimeTable[][] mang2chieu = new InforTimeTable[6][2];
+        DateFormat format2 = new SimpleDateFormat("EEEE");
+        String finalDay;
+        int col = 0, row = 0;
+
+        for (int i = 0; i < tempArray.size(); i++){
+            dateOfItem = splitDate(dataList.get(i).getNgayHoc());
+            date = parseToDate(dateOfItem);
+            finalDay = format2.format(date);
+
+            switch (finalDay){
+                case "Th? Hai":
+                    row = 0;
+                    break;
+                case "Th? Ba":
+                    row = 1;
+                    break;
+                case "Th? Tu":
+                    row = 2;
+                    break;
+                case "Th? Nam":
+                    row = 3;
+                    break;
+                case "Th? Sáu":
+                    row = 4;
+                    break;
+                case "Th? B?y":
+                    row = 5;
+                    break;
+            }
+
+            if (tempArray.get(i).getTietBD() == 1){
+                col = 0;
+            }else if (tempArray.get(i).getTietBD() == 5){
+                col = 1;
+            }
+
+            mang2chieu[row][col] = tempArray.get(i);
+        }
+
+        //thêm cac doi tuong vao mang 2 chieu
+        for (int i = 0; i < 6; i++){
+            for (int j = 0; j < 2; j++){
+                if (mang2chieu[i][j] == null)
+                    mang2chieu[i][j] = new InforTimeTable();
+            }
+        }
+
+        //do nguoc du lieu tu 2 chieu vao arrayData
+        for (int i = 0; i < 6; i++){
+            for (int j = 0; j < 2; j++){
+                arrayData.add(mang2chieu[i][j]);
+            }
+        }
+    }
+
+
+
+    String splitDate(String date){
+        String[] temp = date.split("T");
+        return temp[0];
+    }
+
+    Date parseToDate(String str){
+        try {
+            return new SimpleDateFormat("yyyy-MM-dd").parse(str);
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+
+}
+
+
